@@ -645,76 +645,284 @@ export const generateFromJd = async (req: Request, res: Response) => {
     }
 
     const title = jobTitle || 'Full Stack Software Engineer';
-    const level = experienceLevel || 'mid'; // 'entry' | 'mid' | 'senior'
+    const level = (experienceLevel || 'mid').toLowerCase(); // 'entry' | 'mid' | 'senior'
 
     let generatedResume: any = null;
 
     if (process.env.GROQ_API_KEY) {
       try {
         const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-        const systemPrompt = `You are a Principal Technical Recruiter and Chief ATS Resume Architect.
-Your task is to generate a comprehensive, ultra-high-converting, 100% ATS-optimized resume structure tailored specifically to the target Job Description and Experience Level.
+        
+        let levelPromptInstructions = '';
+        let exampleSchema = '';
 
-CRITICAL ATS GUIDELINES:
-1. EXPERIENCE BULLET FORMULA (Google X-Y-Z Rule):
-   Every experience bullet MUST follow:
-   "• [Strong Action Verb] [Core System/Task] by [Method/Technology], resulting in [Quantifiable Impact & Metric]."
-   Example: "• Architected event-driven microservices using Node.js, Kafka, and Redis, reducing p99 API response times by 38% while scaling to 2.5M+ daily requests."
-   Generate 3-4 deep, highly technical, and metric-rich bullets per experience entry.
+        if (level === 'entry') {
+          levelPromptInstructions = `
+CRITICAL FRESHER / ENTRY-LEVEL (0-2 YRS) DIRECTIVES:
+1. PROFILE: This candidate is a Recent Graduate / Junior Engineer. Focus on academic excellence, data structures, algorithms, hackathons, and high-impact internships or capstone projects.
+2. TITLE: Use "Junior ${title}" or "Associate ${title}".
+3. SUMMARY: Emphasize strong computer science fundamentals, fast learning velocity, modern stack proficiency, hackathon achievements, and hands-on internship delivery.
+4. EXPERIENCE: 1-2 entries representing Software Engineering Internships, Open Source Contributor, or Campus Tech Lead (Durations: 2024 - Present, 2023 - 2024).
+5. EDUCATION: High priority! Bachelor of Science/Technology in Computer Science (2022 - 2026 or 2024 Graduate) with high GPA (e.g. 3.8/4.0 or 8.8/10) and Relevant Coursework (Data Structures, Algorithms, DBMS, Operating Systems, Computer Networks, Distributed Computing).
+6. PROJECTS: 3 heavy, complete Full-Stack/AI projects with GitHub links, live architecture details, and quantifiable metrics.
+7. SECTION ORDER: MUST be: ["summary", "education", "skills", "projects", "experience", "tools", "softSkills", "certifications", "achievements", "positionsOfResponsibility", "languages", "interests", "references"].`;
 
-2. PROJECT BLUEPRINTS:
-   Each project must feature realistic architecture, technologies used (comma-separated), live demo / GitHub links, and 2-3 metric-driven bullets explaining the problem solved and technical innovations.
-
-3. SKILLS TAXONOMY:
-   Categorize skills clearly:
-   - "skills": Core Languages & Frameworks (e.g. TypeScript, React.js, Node.js, Python, Next.js, Go)
-   - "tools": Infrastructure, Cloud, & Testing (e.g. AWS, Docker, Kubernetes, Git, CI/CD, Redis, PostgreSQL, Jest)
-   - "softSkills": Methodologies & Leadership (e.g. Agile/Scrum, Distributed System Design, Cross-functional Collaboration, Code Review)
-
-4. RELATABLE INDUSTRY CERTIFICATIONS & ACHIEVEMENTS:
-   Include recognized credentials (e.g. AWS Certified Solutions Architect, Meta Professional Developer, CKA, Google Cloud, HubSpot SEO) and genuine achievements (Hackathon 1st Place, Open Source Maintainer, Patent/Dean's List).
-
-5. EXPERIENCE LEVEL CALIBRATION:
-   - Entry Level (0-2 yrs): Emphasize fast ramp-up, open-source projects, modern frameworks, hackathons, and high-impact academic/internship delivery.
-   - Mid Level (3-5 yrs): Focus on production ownership, system scalability, latency optimization, microservices, and CI/CD pipelines.
-   - Senior Level (5+ yrs): Highlight technical leadership, architectural decisions, multi-team mentoring, 99.99% SLA reliability, and enterprise cost reduction.
-
-Return ONLY a valid, parseable JSON object matching this schema without any markdown formatting or explanations:
-{
+          exampleSchema = `{
   "personalInfo": {
     "fullName": "Alex Morgan",
-    "jobTitle": "${title}",
+    "jobTitle": "Junior ${title}",
     "email": "alex.morgan.dev@gmail.com",
     "phone": "+1 (555) 382-9104",
     "location": "San Francisco, CA",
-    "summary": "Compelling 2-3 sentence executive summary with quantifiable achievements and ATS keywords.",
+    "summary": "High-energy Junior ${title} with solid computer science fundamentals in Data Structures, Algorithms, and modern full-stack development. Proven ability to build production-grade web applications, win competitive hackathons, and deliver scalable features during engineering internships.",
     "website": "https://alexmorgan.dev",
-    "linkedin": "linkedin.com/in/alexmorgan-dev",
-    "github": "github.com/alexmorgan-dev"
+    "linkedin": "https://linkedin.com/in/alexmorgan-dev",
+    "github": "https://github.com/alexmorgan-dev"
+  },
+  "education": [
+    {
+      "id": "edu1",
+      "degree": "Bachelor of Technology in Computer Science & Engineering",
+      "fieldOfStudy": "Computer Science (GPA: 3.85 / 4.0 - Top 5% of Class)",
+      "institution": "University of California, Berkeley",
+      "location": "Berkeley, CA",
+      "duration": "2022 - 2026"
+    }
+  ],
+  "experience": [
+    {
+      "id": "exp1",
+      "role": "Software Engineering Intern",
+      "company": "InnovateTech Solutions",
+      "location": "San Francisco, CA",
+      "duration": "May 2024 - Aug 2024",
+      "description": "• Accomplished a 35% reduction in API response times as measured by server metrics, by engineering 12+ RESTful microservice endpoints with Node.js and Redis caching.\\n• Built responsive frontend UI components using React 19 and Tailwind CSS, improving user interaction flow and accessibility scores to 96/100.\\n• Implemented automated Jest unit testing suites, increasing backend test coverage from 55% to 88%."
+    },
+    {
+      "id": "exp2",
+      "role": "Web Developer & Open Source Contributor",
+      "company": "Campus Developer Community",
+      "location": "Berkeley, CA",
+      "duration": "2023 - 2024",
+      "description": "• Developed a campus-wide event registration portal handling 2,500+ student registrations with zero downtime using React and Firebase.\\n• Contributed 15+ bug fixes and performance patches to open-source developer tooling on GitHub."
+    }
+  ],
+  "projects": [
+    {
+      "id": "proj1",
+      "name": "Real-Time Collaborative Code & Canvas Studio",
+      "technologies": "React 19, TypeScript, WebSockets, Node.js, PostgreSQL",
+      "description": "• Built a real-time collaborative workspace supporting 50+ concurrent users with sub-30ms latency using WebSocket binary protocols.\\n• Integrated syntax highlighting, Monaco editor, and live chat with automated database persistence.",
+      "link": "https://github.com/alexmorgan-dev/realtime-canvas"
+    },
+    {
+      "id": "proj2",
+      "name": "AI Smart Resume Auditor & Job Matcher",
+      "technologies": "TypeScript, Next.js, Groq LLM, Tailwind CSS, MongoDB",
+      "description": "• Engineered an automated ATS scoring engine that parses resume PDFs and identifies missing skill keywords with 94% accuracy.\\n• Implemented sub-second AI suggestions for resume bullet enhancements and summaries.",
+      "link": "https://github.com/alexmorgan-dev/ai-resume-matcher"
+    },
+    {
+      "id": "proj3",
+      "name": "Distributed Microservices E-Commerce API",
+      "technologies": "Go, Docker, Redis, Stripe API, PostgreSQL",
+      "description": "• Architected transactional payment and order processing pipeline capable of handling 1,000+ orders per minute with idempotent locks.\\n• Containerized services using Docker and orchestrated CI/CD workflows via GitHub Actions.",
+      "link": "https://github.com/alexmorgan-dev/ecommerce-microservices"
+    }
+  ],
+  "skills": [
+    { "id": "s1", "name": "TypeScript" },
+    { "id": "s2", "name": "React.js" },
+    { "id": "s3", "name": "Node.js" },
+    { "id": "s4", "name": "Python" },
+    { "id": "s5", "name": "Data Structures & Algorithms" }
+  ],
+  "tools": [
+    { "id": "t1", "name": "Git & GitHub Actions" },
+    { "id": "t2", "name": "Docker & Linux" },
+    { "id": "t3", "name": "PostgreSQL & MongoDB" },
+    { "id": "t4", "name": "Redis & WebSockets" },
+    { "id": "t5", "name": "Postman & Jest" }
+  ],
+  "softSkills": [
+    { "id": "ss1", "name": "Analytical Problem Solving" },
+    { "id": "ss2", "name": "Agile Development" },
+    { "id": "ss3", "name": "Rapid Prototyping" }
+  ],
+  "languages": [
+    { "id": "lang1", "name": "English", "proficiency": "Native / Bilingual" }
+  ],
+  "certifications": [
+    { "id": "cert1", "name": "Meta Front-End Developer Professional Certificate", "issuer": "Meta", "date": "2024" },
+    { "id": "cert2", "name": "AWS Certified Cloud Practitioner", "issuer": "Amazon Web Services", "date": "2024" }
+  ],
+  "achievements": [
+    { "id": "ach1", "name": "1st Place Winner – National Collegiate Hackathon 2024 (out of 280+ engineering teams)." },
+    { "id": "ach2", "name": "Dean's Honor List for Academic Excellence (Consecutive 4 Semesters)." }
+  ],
+  "positionsOfResponsibility": [
+    { "id": "pos1", "organization": "ACM Student Chapter", "role": "Technical Lead & Workshop Mentor", "duration": "2023 - Present", "description": "Conducted 10+ hands-on coding workshops teaching React, Git, and web architecture to 200+ students." }
+  ],
+  "interests": [
+    { "id": "int1", "name": "Competitive Programming & LeetCode" },
+    { "id": "int2", "name": "Open-Source Web Development" }
+  ],
+  "sectionOrder": ["summary", "education", "skills", "projects", "experience", "tools", "softSkills", "certifications", "achievements", "positionsOfResponsibility", "languages", "interests", "references"],
+  "atsScore": 95
+}`;
+        } else if (level === 'senior') {
+          levelPromptInstructions = `
+CRITICAL SENIOR / LEAD (5+ YRS) DIRECTIVES:
+1. PROFILE: Seasoned Staff/Lead Architect. Focus on system architecture, high-availability microservices (99.99% SLA), engineering leadership, multi-team mentoring, and major cost reductions.
+2. TITLE: "Senior Lead ${title}" or "Staff ${title}".
+3. SUMMARY: 2-3 sentences emphasizing 7+ years of experience leading cross-functional engineering teams, scaling enterprise systems, reducing cloud bills, and driving technical vision.
+4. EXPERIENCE: 3 full-time enterprise roles (2022-Present, 2019-2022, 2016-2019).
+5. EDUCATION: Bachelor of Science (2012 - 2016).
+6. SECTION ORDER: ["summary", "experience", "skills", "tools", "softSkills", "projects", "certifications", "education", "achievements", "positionsOfResponsibility", "languages", "interests", "references"].`;
+
+          exampleSchema = `{
+  "personalInfo": {
+    "fullName": "Alex Morgan",
+    "jobTitle": "Lead ${title}",
+    "email": "alex.morgan.work@gmail.com",
+    "phone": "+1 (555) 382-9104",
+    "location": "San Francisco, CA",
+    "summary": "Accomplished Lead ${title} with 8+ years of expertise architecting high-scale distributed systems and managing multi-disciplinary engineering teams. Track record of cutting AWS infrastructure spend by $140k/year, driving 99.99% system availability, and accelerating sprint delivery velocity by 40%.",
+    "website": "https://alexmorgan.dev",
+    "linkedin": "https://linkedin.com/in/alexmorgan-dev",
+    "github": "https://github.com/alexmorgan-dev"
   },
   "experience": [
     {
       "id": "exp1",
-      "role": "${level === 'senior' ? 'Lead / Staff ' + title : level === 'entry' ? 'Associate ' + title : 'Senior ' + title}",
-      "company": "CloudScale Technologies",
+      "role": "Lead / Staff ${title}",
+      "company": "CloudScale Global Systems",
       "location": "San Francisco, CA",
-      "duration": "2023 - Present",
-      "description": "• Bullet 1 with X-Y-Z formula and metrics\\n• Bullet 2 with X-Y-Z formula and metrics\\n• Bullet 3 with X-Y-Z formula and metrics"
+      "duration": "2022 - Present",
+      "description": "• Accomplished a 45% reduction in p99 API response latencies as measured by Datadog APM, by architecting event-driven microservices processing 12M+ daily requests with Node.js, Kafka, and Redis.\\n• Spearheaded cloud modernization and Kubernetes migration across 4 engineering squads, decreasing annual AWS infrastructure costs by $140k while maintaining 99.99% SLA uptime.\\n• Mentored and led 14 full-stack software engineers, establishing automated CI/CD deployment gates that reduced change failure rate from 18% to under 2%."
     },
     {
       "id": "exp2",
-      "role": "${title}",
-      "company": "Nexus Systems Inc.",
+      "role": "Senior ${title}",
+      "company": "Nexus Enterprise Tech",
       "location": "Austin, TX",
-      "duration": "2021 - 2023",
-      "description": "• Bullet 1 with X-Y-Z formula and metrics\\n• Bullet 2 with X-Y-Z formula and metrics"
+      "duration": "2019 - 2022",
+      "description": "• Accomplished a 60% improvement in database throughput by optimizing PostgreSQL query execution plans, partitioning large tables, and implementing distributed read replicas.\\n• Led frontend architecture refactor to Next.js and TypeScript, improving Core Web Vitals across 2M+ monthly active users to 99/100."
+    },
+    {
+      "id": "exp3",
+      "role": "${title}",
+      "company": "CoreTech Software Inc.",
+      "location": "Seattle, WA",
+      "duration": "2016 - 2019",
+      "description": "• Engineered transactional REST APIs and scalable microservices supporting 500k+ users with Node.js, Express, and MongoDB.\\n• Automated deployment pipelines with Docker and Jenkins, slashing release cycle durations by 50%."
     }
   ],
   "education": [
     {
       "id": "edu1",
-      "degree": "Bachelor of Science",
-      "fieldOfStudy": "Computer Science / Software Engineering",
+      "degree": "Bachelor of Science in Computer Science",
+      "fieldOfStudy": "Computer Science",
+      "institution": "University of California, Berkeley",
+      "location": "Berkeley, CA",
+      "duration": "2012 - 2016"
+    }
+  ],
+  "skills": [
+    { "id": "s1", "name": "TypeScript & JavaScript" },
+    { "id": "s2", "name": "React 19 & Next.js" },
+    { "id": "s3", "name": "Node.js & Go" },
+    { "id": "s4", "name": "Distributed System Design" },
+    { "id": "s5", "name": "Microservices & Event-Driven Architecture" }
+  ],
+  "tools": [
+    { "id": "t1", "name": "AWS (EKS, Lambda, S3, RDS, CloudFront)" },
+    { "id": "t2", "name": "Kubernetes & Docker" },
+    { "id": "t3", "name": "Kafka & Redis Distributed Caching" },
+    { "id": "t4", "name": "PostgreSQL, MongoDB, & DynamoDB" },
+    { "id": "t5", "name": "Terraform & GitHub Actions CI/CD" }
+  ],
+  "softSkills": [
+    { "id": "ss1", "name": "Engineering Leadership & Hiring" },
+    { "id": "ss2", "name": "Cross-Functional Strategic Roadmaps" },
+    { "id": "ss3", "name": "System Scalability & SLA Management" }
+  ],
+  "projects": [
+    {
+      "id": "proj1",
+      "name": "High-Throughput Multi-Region Event Streaming Platform",
+      "technologies": "Go, Kafka, Redis, Kubernetes, AWS EKS, Terraform",
+      "description": "• Architected resilient asynchronous data streaming broker processing 20,000+ events/sec with automated failover and zero message loss.\\n• Cut multi-region data synchronization latency from 450ms to sub-45ms.",
+      "link": "https://github.com/alexmorgan-dev/event-streaming-platform"
+    }
+  ],
+  "languages": [
+    { "id": "lang1", "name": "English", "proficiency": "Native / Bilingual" }
+  ],
+  "certifications": [
+    { "id": "cert1", "name": "AWS Certified Solutions Architect – Professional", "issuer": "Amazon Web Services", "date": "2024" },
+    { "id": "cert2", "name": "Certified Kubernetes Administrator (CKA)", "issuer": "Linux Foundation", "date": "2023" }
+  ],
+  "achievements": [
+    { "id": "ach1", "name": "Recognized as Tech Innovator of the Year for engineering a $140k cloud cost reduction architecture." },
+    { "id": "ach2", "name": "Keynote Speaker at Regional Cloud & Distributed Systems Conference 2024." }
+  ],
+  "positionsOfResponsibility": [
+    { "id": "pos1", "organization": "Engineering Architecture Board", "role": "Principal Architecture Committee Chair", "duration": "2022 - Present", "description": "Evaluated and standardized system design patterns and security compliance across 6 engineering teams." }
+  ],
+  "interests": [
+    { "id": "int1", "name": "High-Concurrency Distributed Systems" },
+    { "id": "int2", "name": "Engineering Mentorship & Tech Writing" }
+  ],
+  "sectionOrder": ["summary", "experience", "skills", "tools", "softSkills", "projects", "certifications", "education", "achievements", "positionsOfResponsibility", "languages", "interests", "references"],
+  "atsScore": 98
+}`;
+        } else {
+          // Mid Level (3-5 yrs)
+          levelPromptInstructions = `
+CRITICAL MID-LEVEL (3-5 YRS) DIRECTIVES:
+1. PROFILE: 3-5 years of professional industry experience. Strong independent ownership of features, microservices, performance optimizations, and CI/CD pipelines.
+2. TITLE: "${title}".
+3. SUMMARY: 2-3 sentences emphasizing 3-5 years of experience building scalable applications, reducing API latencies by 40%+, and delivering core business features.
+4. EXPERIENCE: 2 full-time engineering roles (2023-Present, 2021-2023).
+5. EDUCATION: Bachelor of Science (2017 - 2021).
+6. SECTION ORDER: ["summary", "experience", "skills", "projects", "tools", "education", "softSkills", "certifications", "achievements", "positionsOfResponsibility", "languages", "interests", "references"].`;
+
+          exampleSchema = `{
+  "personalInfo": {
+    "fullName": "Alex Morgan",
+    "jobTitle": "${title}",
+    "email": "alex.morgan.work@gmail.com",
+    "phone": "+1 (555) 382-9104",
+    "location": "San Francisco, CA",
+    "summary": "Performance-focused ${title} with 4+ years of experience architecting resilient web applications, optimizing API throughput, and modernizing frontend interfaces. Proven track record of reducing p99 API response latencies by 42% and accelerating sprint release cycles.",
+    "website": "https://alexmorgan.dev",
+    "linkedin": "https://linkedin.com/in/alexmorgan-dev",
+    "github": "https://github.com/alexmorgan-dev"
+  },
+  "experience": [
+    {
+      "id": "exp1",
+      "role": "${title}",
+      "company": "CloudScale Technologies",
+      "location": "San Francisco, CA",
+      "duration": "2023 - Present",
+      "description": "• Accomplished a 42% reduction in p99 API response latencies as measured by Datadog APM, by refactoring REST microservices in Node.js, TypeScript, and Redis caching.\\n• Engineered high-performance frontend modules in React 19 and Next.js, elevating Lighthouse performance scores from 72 to 98/100.\\n• Automated CI/CD test and deployment pipelines with GitHub Actions and Docker, reducing release deployment times from 40 to 6 minutes."
+    },
+    {
+      "id": "exp2",
+      "role": "Software Developer",
+      "company": "Nexus Systems Inc.",
+      "location": "Austin, TX",
+      "duration": "2021 - 2023",
+      "description": "• Engineered transactional backend endpoints with Express and PostgreSQL, increasing daily query throughput by 3.5x.\\n• Built reusable UI component libraries with TypeScript and Tailwind CSS, increasing cross-team code reuse by 50%."
+    }
+  ],
+  "education": [
+    {
+      "id": "edu1",
+      "degree": "Bachelor of Science in Computer Science",
+      "fieldOfStudy": "Computer Science",
       "institution": "University of California, Berkeley",
       "location": "Berkeley, CA",
       "duration": "2017 - 2021"
@@ -722,37 +930,36 @@ Return ONLY a valid, parseable JSON object matching this schema without any mark
   ],
   "skills": [
     { "id": "s1", "name": "TypeScript" },
-    { "id": "s2", "name": "React.js" },
-    { "id": "s3", "name": "Node.js" },
-    { "id": "s4", "name": "Next.js" },
-    { "id": "s5", "name": "Python" }
+    { "id": "s2", "name": "React 19 & Next.js" },
+    { "id": "s3", "name": "Node.js & Express" },
+    { "id": "s4", "name": "PostgreSQL & Redis" },
+    { "id": "s5", "name": "REST & GraphQL APIs" }
   ],
   "tools": [
     { "id": "t1", "name": "AWS (ECS, Lambda, S3)" },
     { "id": "t2", "name": "Docker & Kubernetes" },
-    { "id": "t3", "name": "PostgreSQL & Redis" },
-    { "id": "t4", "name": "Git & GitHub Actions CI/CD" },
-    { "id": "t5", "name": "GraphQL & REST APIs" }
+    { "id": "t3", "name": "Git & GitHub Actions CI/CD" },
+    { "id": "t4", "name": "Jest & Cypress" }
   ],
   "softSkills": [
-    { "id": "ss1", "name": "Distributed Systems Architecture" },
-    { "id": "ss2", "name": "Agile Sprint Delivery" },
-    { "id": "ss3", "name": "Technical Mentorship" }
+    { "id": "ss1", "name": "Agile Sprint Ownership" },
+    { "id": "ss2", "name": "Cross-Functional Collaboration" },
+    { "id": "ss3", "name": "Code Review & Quality Standards" }
   ],
   "projects": [
     {
       "id": "proj1",
-      "name": "High-Throughput Distributed Processing Pipeline",
-      "technologies": "TypeScript, Go, Kafka, Redis, Docker, AWS",
-      "description": "• Architected asynchronous event pipeline handling 10M+ daily events with sub-50ms processing latency.\\n• Automated deployment with GitHub Actions and Terraform, cutting release cycles by 65%.",
-      "link": "https://github.com/alexmorgan-dev/distributed-pipeline"
+      "name": "Cloud-Scale Microservices Orchestrator",
+      "technologies": "TypeScript, Node.js, Redis, Docker, AWS",
+      "description": "• Architected asynchronous message-driven microservices processing 5M+ daily requests with sub-40ms latency.\\n• Integrated Redis distributed locks and caching layers, decreasing database load by 60%.",
+      "link": "https://github.com/alexmorgan-dev/microservices-orchestrator"
     },
     {
       "id": "proj2",
-      "name": "AI-Powered Real-Time Collaborative Workspace",
-      "technologies": "React 19, WebSockets, Node.js, Tailwind CSS",
-      "description": "• Engineered multi-user CRDT document sync engine supporting 50+ concurrent editors with zero conflict loss.\\n• Integrated Groq LLM streaming API for sub-200ms real-time suggestions.",
-      "link": "https://github.com/alexmorgan-dev/collab-ai"
+      "name": "AI Real-Time Collaborative Analytics Engine",
+      "technologies": "React 19, WebSockets, Python, FastAPI, Tailwind CSS",
+      "description": "• Developed interactive analytics dashboard with live WebSocket data streams supporting 1,000+ concurrent clients.\\n• Integrated AI inference layer for automated trend prediction with 94% accuracy.",
+      "link": "https://github.com/alexmorgan-dev/realtime-analytics"
     }
   ],
   "languages": [
@@ -760,22 +967,37 @@ Return ONLY a valid, parseable JSON object matching this schema without any mark
   ],
   "certifications": [
     { "id": "cert1", "name": "AWS Certified Solutions Architect – Associate", "issuer": "Amazon Web Services", "date": "2024" },
-    { "id": "cert2", "name": "Meta Certified Front-End Developer", "issuer": "Meta", "date": "2023" }
+    { "id": "cert2", "name": "Meta Certified Full-Stack Developer", "issuer": "Meta", "date": "2023" }
   ],
   "achievements": [
-    { "id": "ach1", "name": "1st Place Winner – National Cloud Innovation Hackathon (out of 350+ engineering teams)." },
-    { "id": "ach2", "name": "Authored open-source React performance toolkit with 1,200+ GitHub stars." }
+    { "id": "ach1", "name": "1st Place Winner – Regional Tech Hackathon (out of 200+ teams)." },
+    { "id": "ach2", "name": "Authored popular open-source utility with 800+ GitHub stars." }
   ],
   "positionsOfResponsibility": [
-    { "id": "pos1", "organization": "ACM Developer Community", "role": "Technical Lead & Workshop Mentor", "duration": "2022 - Present", "description": "Mentored 120+ student developers in full-stack architecture, clean coding standards, and cloud deployments." }
+    { "id": "pos1", "organization": "Developer Community", "role": "Sprint Tech Lead", "duration": "2023 - Present", "description": "Led code reviews and sprint delivery for team of 6 engineers." }
   ],
   "interests": [
-    { "id": "int1", "name": "Distributed Systems & Cloud Architecture" },
-    { "id": "int2", "name": "Open Source Tooling" }
+    { "id": "int1", "name": "Distributed Cloud Systems" },
+    { "id": "int2", "name": "Open-Source Tooling" }
   ],
-  "sectionOrder": [ "summary", "education", "experience", "projects", "skills", "tools", "softSkills", "certifications", "achievements", "positionsOfResponsibility", "languages", "interests", "references" ],
+  "sectionOrder": ["summary", "experience", "skills", "projects", "tools", "education", "softSkills", "certifications", "achievements", "positionsOfResponsibility", "languages", "interests", "references"],
   "atsScore": 96
 }`;
+        }
+
+        const systemPrompt = `You are a Principal Technical Recruiter and Chief ATS Resume Architect.
+Your task is to generate a comprehensive, ultra-high-converting, 100% ATS-optimized resume structure strictly tailored to the target Job Description and Experience Level.
+
+CRITICAL ATS GUIDELINES:
+1. EXPERIENCE BULLET FORMULA (Google X-Y-Z Rule):
+   Every experience bullet MUST follow:
+   "• Accomplished [X] as measured by [Y], by doing [Z]"
+   Generate 2-3 deep, highly technical, and metric-rich bullets per experience entry.
+
+${levelPromptInstructions}
+
+Return ONLY a valid, parseable JSON object matching this schema format without any markdown wrappers or conversational explanations:
+${exampleSchema}`;
 
         const chatCompletion = await groq.chat.completions.create({
           messages: [
@@ -795,142 +1017,316 @@ Return ONLY a valid, parseable JSON object matching this schema without any mark
     }
 
     if (!generatedResume) {
-      // High-quality role-specific fallback generator
-      const lower = title.toLowerCase();
-      
-      const isData = lower.includes('data') || lower.includes('analyst') || lower.includes('machine') || lower.includes('ai');
-      const isSEO = lower.includes('seo') || lower.includes('marketing') || lower.includes('growth') || lower.includes('content');
-      const isDevOps = lower.includes('devops') || lower.includes('cloud') || lower.includes('sre') || lower.includes('infrastructure');
-      const isFrontend = lower.includes('front') || lower.includes('ui') || lower.includes('react');
-
-      generatedResume = {
-        personalInfo: {
-          fullName: 'Alex Morgan',
-          jobTitle: title,
-          email: 'alex.morgan.work@gmail.com',
-          phone: '+1 (555) 492-0182',
-          location: 'San Francisco, CA',
-          summary: isSEO 
-            ? `Performance-driven ${title} with proven expertise in Technical SEO, Core Web Vitals optimization, and organic conversion funnels. Demonstrated track record of scaling organic domain traffic by 140%+ and securing #1 Google rankings for high-intent keywords.`
-            : isData
-            ? `Results-oriented ${title} with deep expertise in SQL data modeling, automated ETL pipelines, and executive BI dashboards. Proven ability to translate petabyte-scale data into actionable business strategies, driving a 28% operational cost reduction.`
-            : isDevOps
-            ? `Certified ${title} specializing in multi-region AWS cloud infrastructure, Kubernetes container orchestration, and zero-downtime CI/CD automation. Maintained 99.99% system availability across high-throughput production clusters.`
-            : `High-impact ${title} with strong foundation in full-stack architecture, microservices, and performance optimization. Track record of architecting scalable web applications, reducing API response latencies by 45%, and delivering mission-critical product features.`,
-          website: 'https://alexmorgan.dev',
-          linkedin: 'https://linkedin.com/in/alexmorgan-dev',
-          github: 'https://github.com/alexmorgan-dev'
-        },
-        experience: [
-          {
-            id: 'exp1',
-            role: level === 'senior' ? `Lead ${title}` : `Senior ${title}`,
-            company: 'CloudScale AI Technologies',
+      if (level === 'entry') {
+        generatedResume = {
+          personalInfo: {
+            fullName: 'Alex Morgan',
+            jobTitle: `Junior ${title}`,
+            email: 'alex.morgan.dev@gmail.com',
+            phone: '+1 (555) 382-9104',
             location: 'San Francisco, CA',
-            duration: '2023 - Present',
-            description: isSEO
-              ? '• Spearheaded technical SEO site architecture revamp across 500k+ pages, improving Google Core Web Vitals pass rate from 42% to 98% and driving a 65% boost in organic indexation.\n• Formulated keyword clustering and internal linking strategies that boosted monthly non-brand search traffic by 140% (2.2M monthly visitors).\n• Optimized page load speed (LCP < 1.1s, INP < 80ms) by eliminating render-blocking scripts, directly increasing conversion rate by 22%.'
-              : isData
-              ? '• Architected automated ELT pipelines using dbt, Snowflake, and Apache Airflow, cutting daily data warehouse query latency by 55%.\n• Designed interactive Tableau and PowerBI executive reporting dashboards adopted across 8 business units, identifying $1.4M in annual cost efficiencies.\n• Developed customer churn predictive machine learning models in Python (Scikit-Learn), improving retention forecasting accuracy to 91%.'
-              : isDevOps
-              ? '• Architected multi-region AWS EKS Kubernetes clusters serving 15M+ daily requests with automated horizontal pod autoscaling and 99.99% SLA uptime.\n• Engineered zero-downtime GitHub Actions CI/CD pipelines, reducing production deployment duration from 45 minutes to 4.5 minutes.\n• Implemented centralized Prometheus and Grafana observability stack with automated alerting, reducing Mean Time to Detection (MTTD) by 60%.'
-              : '• Architected high-throughput microservices using React 19, TypeScript, and Node.js, reducing p99 API response latencies by 42% across 3M+ daily active sessions.\n• Spearheaded state management and bundle size refactoring, decreasing client bundle size by 35% and improving Lighthouse performance scores to 99/100.\n• Automated end-to-end integration testing using Jest and Cypress, elevating test coverage from 60% to 94% and cutting regression bug rates by 50%.'
+            summary: `High-energy Junior ${title} with a strong foundation in Computer Science, Data Structures, Algorithms, and full-stack development. Proven ability to engineer high-performance web applications, win competitive collegiate hackathons, and deliver scalable features during engineering internships.`,
+            website: 'https://alexmorgan.dev',
+            linkedin: 'https://linkedin.com/in/alexmorgan-dev',
+            github: 'https://github.com/alexmorgan-dev'
           },
-          {
-            id: 'exp2',
-            role: title,
-            company: 'Nexus Software Systems',
-            location: 'Austin, TX',
-            duration: '2021 - 2023',
-            description: '• Engineered core transactional APIs and modular UI component libraries, accelerating feature delivery velocity across cross-functional sprints by 30%.\n• Optimized PostgreSQL indexing and query execution plans, resolving database bottlenecks and improving read throughput by 4x.\n• Collaborated with product and UX teams to build responsive, accessible interfaces (WCAG 2.1 AA compliant) supporting 100k+ enterprise users.'
-          }
-        ],
-        education: [
-          {
-            id: 'edu1',
-            degree: 'Bachelor of Science in Computer Science / Information Systems',
-            fieldOfStudy: 'Computer Science',
-            institution: 'University of California, Berkeley',
-            location: 'Berkeley, CA',
-            duration: '2017 - 2021'
-          }
-        ],
-        skills: isSEO
-          ? [
-              { id: 's1', name: 'Technical SEO' },
-              { id: 's2', name: 'Google Search Console' },
-              { id: 's3', name: 'Google Analytics 4' },
-              { id: 's4', name: 'Keyword Research' },
-              { id: 's5', name: 'Core Web Vitals Optimization' },
-              { id: 's6', name: 'HTML5 & Semantic Markup' }
-            ]
-          : isData
-          ? [
-              { id: 's1', name: 'SQL & PostgreSQL' },
-              { id: 's2', name: 'Python (Pandas, NumPy)' },
-              { id: 's3', name: 'Snowflake & dbt' },
-              { id: 's4', name: 'Tableau & PowerBI' },
-              { id: 's5', name: 'Apache Airflow' },
-              { id: 's6', name: 'Data Modeling' }
-            ]
-          : [
-              { id: 's1', name: 'TypeScript' },
-              { id: 's2', name: 'React 19 & Next.js' },
-              { id: 's3', name: 'Node.js & Express' },
-              { id: 's4', name: 'Python' },
-              { id: 's5', name: 'REST & GraphQL APIs' },
-              { id: 's6', name: 'State Management (Redux/Zustand)' }
-            ],
-        tools: [
-          { id: 't1', name: 'AWS (S3, Lambda, ECS, CloudFront)' },
-          { id: 't2', name: 'Docker & Containerization' },
-          { id: 't3', name: 'PostgreSQL & Redis Cache' },
-          { id: 't4', name: 'Git & GitHub Actions CI/CD' },
-          { id: 't5', name: 'Jest, Cypress, & Playwright' }
-        ],
-        softSkills: [
-          { id: 'ss1', name: 'Distributed Systems Architecture' },
-          { id: 'ss2', name: 'Agile & Scrum Sprint Leadership' },
-          { id: 'ss3', name: 'Cross-Functional Team Collaboration' },
-          { id: 'ss4', name: 'Technical Mentoring & Code Reviews' }
-        ],
-        projects: [
-          {
-            id: 'proj1',
-            name: 'Cloud-Scale Microservices Orchestrator',
-            technologies: 'TypeScript, Node.js, Redis, Docker, AWS, Kafka',
-            description: '• Architected asynchronous message-driven microservices processing 5M+ daily requests with sub-40ms latency.\n• Integrated Redis distributed locks and caching layers, decreasing relational database load by 60%.\n• Implemented automated CI/CD pipeline reducing release cycles from weekly to multi-daily releases.',
-            link: 'https://github.com/alexmorgan-dev/microservices-orchestrator'
+          education: [
+            {
+              id: 'edu1',
+              degree: 'Bachelor of Technology in Computer Science & Engineering',
+              fieldOfStudy: 'Computer Science (GPA: 3.85 / 4.0 - Top 5% of Class)',
+              institution: 'University of California, Berkeley',
+              location: 'Berkeley, CA',
+              duration: '2022 - 2026'
+            }
+          ],
+          experience: [
+            {
+              id: 'exp1',
+              role: 'Software Engineering Intern',
+              company: 'InnovateTech Solutions',
+              location: 'San Francisco, CA',
+              duration: 'May 2024 - Aug 2024',
+              description: '• Accomplished a 35% reduction in API response times by engineering 12+ RESTful microservice endpoints with Node.js and Redis caching.\n• Built responsive frontend UI components using React 19 and Tailwind CSS, improving accessibility and user engagement scores to 96/100.\n• Implemented automated Jest unit testing suites, increasing backend test coverage from 55% to 88%.'
+            },
+            {
+              id: 'exp2',
+              role: 'Web Developer & Open Source Contributor',
+              company: 'Campus Developer Community',
+              location: 'Berkeley, CA',
+              duration: '2023 - 2024',
+              description: '• Developed a campus-wide event registration portal handling 2,500+ student registrations with zero downtime using React and Firebase.\n• Contributed 15+ bug fixes and performance patches to open-source developer tooling on GitHub.'
+            }
+          ],
+          projects: [
+            {
+              id: 'proj1',
+              name: 'Real-Time Collaborative Code & Canvas Studio',
+              technologies: 'React 19, TypeScript, WebSockets, Node.js, PostgreSQL',
+              description: '• Built a real-time collaborative workspace supporting 50+ concurrent users with sub-30ms latency using WebSocket binary protocols.\n• Integrated syntax highlighting, Monaco editor, and live chat with automated database persistence.',
+              link: 'https://github.com/alexmorgan-dev/realtime-canvas'
+            },
+            {
+              id: 'proj2',
+              name: 'AI Smart Resume Auditor & Job Matcher',
+              technologies: 'TypeScript, Next.js, Groq LLM, Tailwind CSS, MongoDB',
+              description: '• Engineered an automated ATS scoring engine that parses resume PDFs and identifies missing skill keywords with 94% accuracy.\n• Implemented sub-second AI suggestions for resume bullet enhancements and summaries.',
+              link: 'https://github.com/alexmorgan-dev/ai-resume-matcher'
+            },
+            {
+              id: 'proj3',
+              name: 'Distributed Microservices E-Commerce API',
+              technologies: 'Go, Docker, Redis, Stripe API, PostgreSQL',
+              description: '• Architected transactional payment and order processing pipeline capable of handling 1,000+ orders per minute with idempotent locks.\n• Containerized services using Docker and orchestrated CI/CD workflows via GitHub Actions.',
+              link: 'https://github.com/alexmorgan-dev/ecommerce-microservices'
+            }
+          ],
+          skills: [
+            { id: 's1', name: 'TypeScript & JavaScript' },
+            { id: 's2', name: 'React 19 & Next.js' },
+            { id: 's3', name: 'Node.js & Express' },
+            { id: 's4', name: 'Python' },
+            { id: 's5', name: 'Data Structures & Algorithms' }
+          ],
+          tools: [
+            { id: 't1', name: 'Git & GitHub Actions' },
+            { id: 't2', name: 'Docker & Linux' },
+            { id: 't3', name: 'PostgreSQL & MongoDB' },
+            { id: 't4', name: 'Redis & WebSockets' },
+            { id: 't5', name: 'Postman & Jest' }
+          ],
+          softSkills: [
+            { id: 'ss1', name: 'Analytical Problem Solving' },
+            { id: 'ss2', name: 'Agile Development' },
+            { id: 'ss3', name: 'Rapid Prototyping' }
+          ],
+          languages: [
+            { id: 'lang1', name: 'English', proficiency: 'Native / Bilingual' }
+          ],
+          certifications: [
+            { id: 'cert1', name: 'Meta Front-End Developer Professional Certificate', issuer: 'Meta', date: '2024' },
+            { id: 'cert2', name: 'AWS Certified Cloud Practitioner', issuer: 'Amazon Web Services', date: '2024' }
+          ],
+          achievements: [
+            { id: 'ach1', name: '1st Place Winner – National Collegiate Hackathon 2024 (out of 280+ engineering teams).' },
+            { id: 'ach2', name: "Dean's Honor List for Academic Excellence (Consecutive 4 Semesters)." }
+          ],
+          positionsOfResponsibility: [
+            { id: 'pos1', organization: 'ACM Student Chapter', role: 'Technical Lead & Workshop Mentor', duration: '2023 - Present', description: 'Conducted 10+ hands-on coding workshops teaching React, Git, and web architecture to 200+ students.' }
+          ],
+          interests: [
+            { id: 'int1', name: 'Competitive Programming & LeetCode' },
+            { id: 'int2', name: 'Open-Source Web Development' }
+          ],
+          sectionOrder: ['summary', 'education', 'skills', 'projects', 'experience', 'tools', 'softSkills', 'certifications', 'achievements', 'positionsOfResponsibility', 'languages', 'interests', 'references'],
+          atsScore: 95
+        };
+      } else if (level === 'senior') {
+        generatedResume = {
+          personalInfo: {
+            fullName: 'Alex Morgan',
+            jobTitle: `Lead ${title}`,
+            email: 'alex.morgan.work@gmail.com',
+            phone: '+1 (555) 382-9104',
+            location: 'San Francisco, CA',
+            summary: `Accomplished Lead ${title} with 8+ years of expertise architecting high-scale distributed systems and managing multi-disciplinary engineering teams. Track record of cutting AWS infrastructure spend by $140k/year, driving 99.99% system availability, and accelerating sprint delivery velocity by 40%.`,
+            website: 'https://alexmorgan.dev',
+            linkedin: 'https://linkedin.com/in/alexmorgan-dev',
+            github: 'https://github.com/alexmorgan-dev'
           },
-          {
-            id: 'proj2',
-            name: 'AI Real-Time Collaborative Analytics Engine',
-            technologies: 'React 19, WebSockets, Python, FastAPI, Tailwind CSS',
-            description: '• Developed interactive analytics dashboard with live multi-user WebSocket data streams supporting 1,000+ concurrent clients.\n• Integrated AI inference layer for automated trend prediction and anomaly alerts with 94% accuracy.',
-            link: 'https://github.com/alexmorgan-dev/realtime-analytics'
-          }
-        ],
-        languages: [
-          { id: 'lang1', name: 'English', proficiency: 'Native / Bilingual' }
-        ],
-        certifications: [
-          { id: 'cert1', name: 'AWS Certified Solutions Architect – Associate', issuer: 'Amazon Web Services', date: '2024' },
-          { id: 'cert2', name: 'Meta Certified Professional Full-Stack Engineer', issuer: 'Meta', date: '2023' }
-        ],
-        achievements: [
-          { id: 'ach1', name: '1st Place Winner – National Hackathon (out of 350+ engineering teams).' },
-          { id: 'ach2', name: 'Maintained 5-star open-source developer tool with 1,500+ GitHub stars.' }
-        ],
-        positionsOfResponsibility: [
-          { id: 'pos1', organization: 'ACM Developer Community', role: 'Technical Lead & Workshop Mentor', duration: '2022 - Present', description: 'Coordinated technical workshops and mentored 100+ junior developers in cloud architecture and clean code.' }
-        ],
-        interests: [
-          { id: 'int1', name: 'Distributed Systems & Cloud Computing' },
-          { id: 'int2', name: 'Open-Source Contribution' }
-        ],
-        sectionOrder: ['summary', 'education', 'experience', 'projects', 'skills', 'tools', 'softSkills', 'certifications', 'achievements', 'positionsOfResponsibility', 'languages', 'interests', 'references'],
-        atsScore: 96
-      };
+          experience: [
+            {
+              id: 'exp1',
+              role: `Lead / Staff ${title}`,
+              company: 'CloudScale Global Systems',
+              location: 'San Francisco, CA',
+              duration: '2022 - Present',
+              description: '• Accomplished a 45% reduction in p99 API response latencies as measured by Datadog APM, by architecting event-driven microservices processing 12M+ daily requests with Node.js, Kafka, and Redis.\n• Spearheaded cloud modernization and Kubernetes migration across 4 engineering squads, decreasing annual AWS infrastructure costs by $140k while maintaining 99.99% SLA uptime.\n• Mentored and led 14 full-stack software engineers, establishing automated CI/CD deployment gates that reduced change failure rate from 18% to under 2%.'
+            },
+            {
+              id: 'exp2',
+              role: `Senior ${title}`,
+              company: 'Nexus Enterprise Tech',
+              location: 'Austin, TX',
+              duration: '2019 - 2022',
+              description: '• Accomplished a 60% improvement in database throughput by optimizing PostgreSQL query execution plans, partitioning large tables, and implementing distributed read replicas.\n• Led frontend architecture refactor to Next.js and TypeScript, improving Core Web Vitals across 2M+ monthly active users to 99/100.'
+            },
+            {
+              id: 'exp3',
+              role: title,
+              company: 'CoreTech Software Inc.',
+              location: 'Seattle, WA',
+              duration: '2016 - 2019',
+              description: '• Engineered transactional REST APIs and scalable microservices supporting 500k+ users with Node.js, Express, and MongoDB.\n• Automated deployment pipelines with Docker and Jenkins, slashing release cycle durations by 50%.'
+            }
+          ],
+          education: [
+            {
+              id: 'edu1',
+              degree: 'Bachelor of Science in Computer Science',
+              fieldOfStudy: 'Computer Science',
+              institution: 'University of California, Berkeley',
+              location: 'Berkeley, CA',
+              duration: '2012 - 2016'
+            }
+          ],
+          skills: [
+            { id: 's1', name: 'TypeScript & JavaScript' },
+            { id: 's2', name: 'React 19 & Next.js' },
+            { id: 's3', name: 'Node.js & Go' },
+            { id: 's4', name: 'Distributed System Design' },
+            { id: 's5', name: 'Microservices & Event-Driven Architecture' }
+          ],
+          tools: [
+            { id: 't1', name: 'AWS (EKS, Lambda, S3, RDS, CloudFront)' },
+            { id: 't2', name: 'Kubernetes & Docker' },
+            { id: 't3', name: 'Kafka & Redis Distributed Caching' },
+            { id: 't4', name: 'PostgreSQL, MongoDB, & DynamoDB' },
+            { id: 't5', name: 'Terraform & GitHub Actions CI/CD' }
+          ],
+          softSkills: [
+            { id: 'ss1', name: 'Engineering Leadership & Hiring' },
+            { id: 'ss2', name: 'Cross-Functional Strategic Roadmaps' },
+            { id: 'ss3', name: 'System Scalability & SLA Management' }
+          ],
+          projects: [
+            {
+              id: 'proj1',
+              name: 'High-Throughput Multi-Region Event Streaming Platform',
+              technologies: 'Go, Kafka, Redis, Kubernetes, AWS EKS, Terraform',
+              description: '• Architected resilient asynchronous data streaming broker processing 20,000+ events/sec with automated failover and zero message loss.\n• Cut multi-region data synchronization latency from 450ms to sub-45ms.',
+              link: 'https://github.com/alexmorgan-dev/event-streaming-platform'
+            }
+          ],
+          languages: [
+            { id: 'lang1', name: 'English', proficiency: 'Native / Bilingual' }
+          ],
+          certifications: [
+            { id: 'cert1', name: 'AWS Certified Solutions Architect – Professional', issuer: 'Amazon Web Services', date: '2024' },
+            { id: 'cert2', name: 'Certified Kubernetes Administrator (CKA)', issuer: 'Linux Foundation', date: '2023' }
+          ],
+          achievements: [
+            { id: 'ach1', name: 'Recognized as Tech Innovator of the Year for engineering a $140k cloud cost reduction architecture.' },
+            { id: 'ach2', name: 'Keynote Speaker at Regional Cloud & Distributed Systems Conference 2024.' }
+          ],
+          positionsOfResponsibility: [
+            { id: 'pos1', organization: 'Engineering Architecture Board', role: 'Principal Architecture Committee Chair', duration: '2022 - Present', description: 'Evaluated and standardized system design patterns and security compliance across 6 engineering teams.' }
+          ],
+          interests: [
+            { id: 'int1', name: 'High-Concurrency Distributed Systems' },
+            { id: 'int2', name: 'Engineering Mentorship & Tech Writing' }
+          ],
+          sectionOrder: ['summary', 'experience', 'skills', 'tools', 'softSkills', 'projects', 'certifications', 'education', 'achievements', 'positionsOfResponsibility', 'languages', 'interests', 'references'],
+          atsScore: 98
+        };
+      } else {
+        // Mid Level fallback
+        generatedResume = {
+          personalInfo: {
+            fullName: 'Alex Morgan',
+            jobTitle: title,
+            email: 'alex.morgan.work@gmail.com',
+            phone: '+1 (555) 382-9104',
+            location: 'San Francisco, CA',
+            summary: `Performance-focused ${title} with 4+ years of experience architecting resilient web applications, optimizing API throughput, and modernizing frontend interfaces. Proven track record of reducing p99 API response latencies by 42% and accelerating sprint release cycles.`,
+            website: 'https://alexmorgan.dev',
+            linkedin: 'https://linkedin.com/in/alexmorgan-dev',
+            github: 'https://github.com/alexmorgan-dev'
+          },
+          experience: [
+            {
+              id: 'exp1',
+              role: title,
+              company: 'CloudScale Technologies',
+              location: 'San Francisco, CA',
+              duration: '2023 - Present',
+              description: '• Accomplished a 42% reduction in p99 API response latencies as measured by Datadog APM, by refactoring REST microservices in Node.js, TypeScript, and Redis caching.\n• Engineered high-performance frontend modules in React 19 and Next.js, elevating Lighthouse performance scores from 72 to 98/100.\n• Automated CI/CD test and deployment pipelines with GitHub Actions and Docker, reducing release deployment times from 40 to 6 minutes.'
+            },
+            {
+              id: 'exp2',
+              role: 'Software Developer',
+              company: 'Nexus Systems Inc.',
+              location: 'Austin, TX',
+              duration: '2021 - 2023',
+              description: '• Engineered transactional backend endpoints with Express and PostgreSQL, increasing daily query throughput by 3.5x.\n• Built reusable UI component libraries with TypeScript and Tailwind CSS, increasing cross-team code reuse by 50%.'
+            }
+          ],
+          education: [
+            {
+              id: 'edu1',
+              degree: 'Bachelor of Science in Computer Science',
+              fieldOfStudy: 'Computer Science',
+              institution: 'University of California, Berkeley',
+              location: 'Berkeley, CA',
+              duration: '2017 - 2021'
+            }
+          ],
+          skills: [
+            { id: 's1', name: 'TypeScript' },
+            { id: 's2', name: 'React 19 & Next.js' },
+            { id: 's3', name: 'Node.js & Express' },
+            { id: 's4', name: 'PostgreSQL & Redis' },
+            { id: 's5', name: 'REST & GraphQL APIs' }
+          ],
+          tools: [
+            { id: 't1', name: 'AWS (ECS, Lambda, S3)' },
+            { id: 't2', name: 'Docker & Kubernetes' },
+            { id: 't3', name: 'Git & GitHub Actions CI/CD' },
+            { id: 't4', name: 'Jest & Cypress' }
+          ],
+          softSkills: [
+            { id: 'ss1', name: 'Agile Sprint Ownership' },
+            { id: 'ss2', name: 'Cross-Functional Collaboration' },
+            { id: 'ss3', name: 'Code Review & Quality Standards' }
+          ],
+          projects: [
+            {
+              id: 'proj1',
+              name: 'Cloud-Scale Microservices Orchestrator',
+              technologies: 'TypeScript, Node.js, Redis, Docker, AWS',
+              description: '• Architected asynchronous message-driven microservices processing 5M+ daily requests with sub-40ms latency.\n• Integrated Redis distributed locks and caching layers, decreasing database load by 60%.',
+              link: 'https://github.com/alexmorgan-dev/microservices-orchestrator'
+            },
+            {
+              id: 'proj2',
+              name: 'AI Real-Time Collaborative Analytics Engine',
+              technologies: 'React 19, WebSockets, Python, FastAPI, Tailwind CSS',
+              description: '• Developed interactive analytics dashboard with live WebSocket data streams supporting 1,000+ concurrent clients.\n• Integrated AI inference layer for automated trend prediction with 94% accuracy.',
+              link: 'https://github.com/alexmorgan-dev/realtime-analytics'
+            }
+          ],
+          languages: [
+            { id: 'lang1', name: 'English', proficiency: 'Native / Bilingual' }
+          ],
+          certifications: [
+            { id: 'cert1', name: 'AWS Certified Solutions Architect – Associate', issuer: 'Amazon Web Services', date: '2024' },
+            { id: 'cert2', name: 'Meta Certified Full-Stack Developer', issuer: 'Meta', date: '2023' }
+          ],
+          achievements: [
+            { id: 'ach1', name: '1st Place Winner – Regional Tech Hackathon (out of 200+ teams).' },
+            { id: 'ach2', name: 'Authored popular open-source utility with 800+ GitHub stars.' }
+          ],
+          positionsOfResponsibility: [
+            { id: 'pos1', organization: 'Developer Community', role: 'Sprint Tech Lead', duration: '2023 - Present', description: 'Led code reviews and sprint delivery for team of 6 engineers.' }
+          ],
+          interests: [
+            { id: 'int1', name: 'Distributed Cloud Systems' },
+            { id: 'int2', name: 'Open-Source Tooling' }
+          ],
+          sectionOrder: ['summary', 'experience', 'skills', 'projects', 'tools', 'education', 'softSkills', 'certifications', 'achievements', 'positionsOfResponsibility', 'languages', 'interests', 'references'],
+          atsScore: 96
+        };
+      }
+    }
+
+    if (generatedResume) {
+      if (!generatedResume.sectionOrder || !Array.isArray(generatedResume.sectionOrder) || generatedResume.sectionOrder.length === 0) {
+        generatedResume.sectionOrder = level === 'entry'
+          ? ['summary', 'education', 'skills', 'projects', 'experience', 'tools', 'softSkills', 'certifications', 'achievements', 'positionsOfResponsibility', 'languages', 'interests', 'references']
+          : level === 'senior'
+          ? ['summary', 'experience', 'skills', 'tools', 'softSkills', 'projects', 'certifications', 'education', 'achievements', 'positionsOfResponsibility', 'languages', 'interests', 'references']
+          : ['summary', 'experience', 'skills', 'projects', 'tools', 'education', 'softSkills', 'certifications', 'achievements', 'positionsOfResponsibility', 'languages', 'interests', 'references'];
+      }
     }
 
     res.json({ resume: generatedResume });
