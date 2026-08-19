@@ -98,11 +98,52 @@ const DashboardPage: React.FC = () => {
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [genJobTitle, setGenJobTitle] = useState('');
   const [genJobDescription, setGenJobDescription] = useState('');
+  const [genLevel, setGenLevel] = useState<'entry' | 'mid' | 'senior'>('mid');
+  const [genKeySkills, setGenKeySkills] = useState('');
   const [generating, setGenerating] = useState(false);
 
+  const rolePresets = [
+    {
+      title: 'Full Stack Software Engineer',
+      skills: 'TypeScript, React 19, Node.js, Next.js, PostgreSQL, Docker, AWS',
+      desc: 'Looking for a Full Stack Engineer to architect high-throughput microservices, design scalable React/Next.js client applications, optimize database queries, and automate CI/CD release pipelines.'
+    },
+    {
+      title: 'Frontend React Developer',
+      skills: 'React 19, TypeScript, Tailwind CSS, Next.js, Redux/Zustand, WebSockets, Jest',
+      desc: 'Seeking a Frontend Engineer to build responsive, accessible, high-performance web applications. Expertise in state management, Core Web Vitals optimization, and modern component systems required.'
+    },
+    {
+      title: 'Backend Node / Cloud Engineer',
+      skills: 'Node.js, Express, TypeScript, Redis, PostgreSQL, Docker, Kubernetes, AWS',
+      desc: 'Seeking a Backend Engineer to design RESTful & GraphQL microservices, implement distributed Redis caching, optimize relational schema queries, and manage containerized cloud workloads.'
+    },
+    {
+      title: 'Data Analyst & BI Specialist',
+      skills: 'SQL, Python, PostgreSQL, Snowflake, dbt, Tableau, PowerBI, ETL',
+      desc: 'Seeking a Data Analyst to build automated ETL pipelines, design executive business intelligence dashboards in Tableau/PowerBI, and translate complex data sets into actionable revenue optimizations.'
+    },
+    {
+      title: 'Technical SEO Specialist',
+      skills: 'Technical SEO, Google Search Console, Google Analytics 4, Core Web Vitals, HTML5 Semantic Markup, Keyword Strategy',
+      desc: 'Seeking a Technical SEO Specialist to drive organic search traffic growth, audit website architecture, optimize Core Web Vitals (LCP, INP), and execute keyword clustering strategies.'
+    },
+    {
+      title: 'DevOps & SRE Engineer',
+      skills: 'AWS, Kubernetes, Docker, Terraform, GitHub Actions, Prometheus, Grafana, Linux',
+      desc: 'Looking for a DevOps Engineer to maintain 99.99% system availability, automate multi-region cloud infrastructure with Terraform, and streamline CI/CD pipelines.'
+    }
+  ];
+
+  const handleSelectPreset = (preset: typeof rolePresets[0]) => {
+    setGenJobTitle(preset.title);
+    setGenKeySkills(preset.skills);
+    setGenJobDescription(preset.desc);
+  };
+
   const handleGenerateResumeFromJD = async () => {
-    if (!genJobTitle.trim() || !genJobDescription.trim()) {
-      alert('Please fill out both Job Title and Job Description!');
+    if (!genJobTitle.trim() && !genJobDescription.trim()) {
+      alert('Please select a role preset or provide a Job Title / Description!');
       return;
     }
     
@@ -116,8 +157,10 @@ const DashboardPage: React.FC = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          jobTitle: genJobTitle,
-          jobDescription: genJobDescription
+          jobTitle: genJobTitle || 'Full Stack Engineer',
+          jobDescription: genJobDescription || genJobTitle,
+          experienceLevel: genLevel,
+          keySkills: genKeySkills
         })
       });
       
@@ -127,17 +170,15 @@ const DashboardPage: React.FC = () => {
       }
       
       if (resData.resume) {
-        // Enforce Academic template by default
         const generated = {
           ...resData.resume,
           templateId: 'academic'
         };
         
-        // Save generate context in state so Builder Page can display tailoring results if desired
         navigate('/create', { 
           state: { 
             resume: generated,
-            atsAnalysis: null, // Clear past audits
+            atsAnalysis: null,
             jobTitle: genJobTitle,
             jobDescription: genJobDescription
           } 
@@ -638,13 +679,14 @@ const DashboardPage: React.FC = () => {
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'rgba(0, 0, 0, 0.7)',
-            backdropFilter: 'blur(8px)',
+            background: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(10px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 1000,
-            padding: '20px'
+            padding: '20px',
+            overflowY: 'auto'
           }}>
             <div style={{
               background: 'var(--bg-secondary)',
@@ -652,59 +694,156 @@ const DashboardPage: React.FC = () => {
               borderRadius: '24px',
               padding: isMobile ? '24px 16px' : '32px',
               width: '100%',
-              maxWidth: '560px',
-              boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
+              maxWidth: '620px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.4)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '20px'
+              gap: '18px'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Sparkles size={24} color="var(--accent-primary)" />
-                  <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800 }}>AI Resume Generator</h3>
+                  <div style={{
+                    background: 'var(--accent-glow)',
+                    padding: '8px',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Sparkles size={22} color="var(--accent-primary)" />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800 }}>AI ATS Resume Builder</h3>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Google X-Y-Z Formula • High ATS Pass Rate</span>
+                  </div>
                 </div>
                 <button 
                   onClick={() => setShowGenerateModal(false)} 
-                  style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.3rem', padding: '4px' }}
                 >
                   ✕
                 </button>
               </div>
 
-              <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                Paste the target Job Title and Description. Our AI model will construct a high-scoring, fully-completed custom resume with all required keywords pre-aligned in the Academic layout.
-              </p>
-
+              {/* Role Presets */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Target Job Title</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Senior Frontend Engineer"
-                  value={genJobTitle}
-                  onChange={e => setGenJobTitle(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border-color)',
-                    background: 'var(--bg-primary)',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.9rem',
-                    boxSizing: 'border-box'
-                  }}
-                />
+                <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  🎯 Quick Role Presets (Click to autofill)
+                </label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {rolePresets.map((preset, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleSelectPreset(preset)}
+                      style={{
+                        background: genJobTitle === preset.title ? 'var(--accent-primary)' : 'var(--bg-primary)',
+                        color: genJobTitle === preset.title ? '#fff' : 'var(--text-secondary)',
+                        border: '1px solid var(--border-color)',
+                        padding: '6px 12px',
+                        borderRadius: '20px',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      {preset.title}
+                    </button>
+                  ))}
+                </div>
               </div>
 
+              {/* Experience Level Selector */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Job Description</label>
+                <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  ⚡ Seniority & Career Stage
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                  {[
+                    { id: 'entry', label: '🌱 Entry (0-2 yrs)', desc: 'Projects & Fundamentals' },
+                    { id: 'mid', label: '🚀 Mid-Level (3-5 yrs)', desc: 'Scale & Latency Metrics' },
+                    { id: 'senior', label: '👑 Senior / Lead (5+ yrs)', desc: 'Architecture & Mentorship' }
+                  ].map(lvl => (
+                    <button
+                      key={lvl.id}
+                      type="button"
+                      onClick={() => setGenLevel(lvl.id as any)}
+                      style={{
+                        background: genLevel === lvl.id ? 'var(--accent-glow)' : 'var(--bg-primary)',
+                        border: genLevel === lvl.id ? '1.5px solid var(--accent-primary)' : '1px solid var(--border-color)',
+                        color: genLevel === lvl.id ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                        padding: '8px 10px',
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '2px',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <span style={{ fontWeight: 700, fontSize: '0.82rem' }}>{lvl.label}</span>
+                      <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>{lvl.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Target Job Title</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Senior Full Stack Engineer"
+                    value={genJobTitle}
+                    onChange={e => setGenJobTitle(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-primary)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.875rem',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Priority Skills (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. React 19, TypeScript, AWS, Docker"
+                    value={genKeySkills}
+                    onChange={e => setGenKeySkills(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-primary)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.875rem',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Job Description / Key Requirements</label>
                 <textarea
-                  rows={8}
-                  placeholder="Paste the job requirements, responsibilities, and qualifications..."
+                  rows={5}
+                  placeholder="Paste the target job description or requirements to extract relevant keywords..."
                   value={genJobDescription}
                   onChange={e => setGenJobDescription(e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '12px',
+                    padding: '10px 12px',
                     borderRadius: '10px',
                     border: '1px solid var(--border-color)',
                     background: 'var(--bg-primary)',
@@ -716,15 +855,16 @@ const DashboardPage: React.FC = () => {
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '6px' }}>
                 <button
+                  type="button"
                   onClick={() => setShowGenerateModal(false)}
                   disabled={generating}
                   style={{
                     background: 'transparent',
                     border: '1px solid var(--border-color)',
                     color: 'var(--text-primary)',
-                    padding: '10px 20px',
+                    padding: '10px 18px',
                     borderRadius: '12px',
                     fontWeight: 600,
                     cursor: 'pointer'
@@ -733,6 +873,7 @@ const DashboardPage: React.FC = () => {
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={handleGenerateResumeFromJD}
                   disabled={generating}
                   style={{
@@ -746,11 +887,12 @@ const DashboardPage: React.FC = () => {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    opacity: generating ? 0.7 : 1
+                    opacity: generating ? 0.7 : 1,
+                    boxShadow: '0 4px 15px var(--accent-glow)'
                   }}
                 >
                   {generating && <Loader2 size={16} className="animate-spin" />}
-                  {generating ? 'Constructing Resume...' : 'Generate Tailored Resume'}
+                  {generating ? 'Constructing Resume...' : 'Generate ATS Resume'}
                 </button>
               </div>
             </div>

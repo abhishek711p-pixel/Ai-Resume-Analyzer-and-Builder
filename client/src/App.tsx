@@ -18,6 +18,7 @@ import AuthPage from './pages/AuthPage';
 import DashboardPage from './pages/DashboardPage';
 import BuilderPage from './pages/BuilderPage';
 import TailorPage from './pages/TailorPage';
+import EvaluationPage from './pages/EvaluationPage';
 
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -46,6 +47,7 @@ const AppLayout = () => {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />
+        <Route path="/evaluation" element={<EvaluationPage />} />
 
         <Route 
           path="/dashboard" 
