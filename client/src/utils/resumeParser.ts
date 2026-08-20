@@ -395,6 +395,33 @@ export function parseResumeText(rawText: string): ResumeData {
     });
   }
 
+  // Preserve the exact sequence of sections as they appeared in the uploaded resume
+  const headerToSectionMap: Record<string, string> = {
+    SUMMARY: 'summary',
+    EXPERIENCE: 'experience',
+    EDUCATION: 'education',
+    SKILLS: 'skills',
+    TOOLS: 'tools',
+    SOFT_SKILLS: 'softSkills',
+    LANGUAGES: 'languages',
+    PROJECTS: 'projects',
+    ACHIEVEMENTS: 'achievements'
+  };
+
+  const detectedSections = sectionHeaders
+    .map(h => headerToSectionMap[h.name])
+    .filter(Boolean);
+
+  const defaultOrder = [
+    'summary', 'education', 'experience', 'projects', 'skills', 'tools', 
+    'softSkills', 'languages', 'certifications', 'achievements', 
+    'positionsOfResponsibility', 'interests', 'references'
+  ];
+
+  const sectionOrder = [
+    ...new Set([...detectedSections, ...defaultOrder])
+  ];
+
   return {
     personalInfo: {
       fullName,
@@ -418,7 +445,8 @@ export function parseResumeText(rawText: string): ResumeData {
     certifications: [],
     achievements,
     positionsOfResponsibility: [],
-    interests: []
+    interests: [],
+    sectionOrder
   };
 }
 
