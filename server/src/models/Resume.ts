@@ -226,4 +226,7 @@ const ResumeSchema: Schema = new Schema(
   }
 );
 
+// High-Performance Index: Fast O(1) user resume lookups sorted by recent update
+ResumeSchema.index({ userId: 1, updatedAt: -1 });
+
 export default mongoose.model<IResume>('Resume', ResumeSchema);

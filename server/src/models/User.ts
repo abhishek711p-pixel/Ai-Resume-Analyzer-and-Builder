@@ -45,5 +45,8 @@ const UserSchema: Schema = new Schema(
   }
 );
 
+// High-Performance Index: Fast O(1) user lookups on authentication and session validation
+UserSchema.index({ username: 1 });
+
 // Export User model
 export default mongoose.model<IUser>('User', UserSchema);

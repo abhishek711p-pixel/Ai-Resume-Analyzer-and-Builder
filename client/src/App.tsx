@@ -7,19 +7,42 @@
  * 3. Incorporates a global Tech Stack Modal helper.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
-import LandingPage from './pages/LandingPage';
 import Footer from './components/Footer';
 import TechStackModal from './components/TechStackModal';
 
-import AuthPage from './pages/AuthPage';
-import DashboardPage from './pages/DashboardPage';
-import BuilderPage from './pages/BuilderPage';
-import TailorPage from './pages/TailorPage';
-import EvaluationPage from './pages/EvaluationPage';
+// Route-based code splitting for ultra-fast initial page loads
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const AuthPage = lazy(() => import('./pages/AuthPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const BuilderPage = lazy(() => import('./pages/BuilderPage'));
+const TailorPage = lazy(() => import('./pages/TailorPage'));
+const EvaluationPage = lazy(() => import('./pages/EvaluationPage'));
 
+const PageLoader = () => (
+  <div style={{
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '60vh',
+    color: 'var(--accent-primary)',
+    fontWeight: 600,
+    fontSize: '1rem',
+    gap: '8px'
+  }}>
+    <div style={{
+      width: '24px',
+      height: '24px',
+      border: '3px solid rgba(0, 229, 153, 0.2)',
+      borderTopColor: 'var(--accent-primary)',
+      borderRadius: '50%',
+      animation: 'spin 0.6s linear infinite'
+    }} />
+    <span>Loading...</span>
+  </div>
+);
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
@@ -44,36 +67,38 @@ const AppLayout = () => {
   return (
     <>
       {!isFullWorkspace && <Navbar onOpenTechStack={() => setIsTechStackOpen(true)} />}
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/auth" element={<AuthPage />} />
-        <Route path="/evaluation" element={<EvaluationPage />} />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/evaluation" element={<EvaluationPage />} />
 
-        <Route 
-          path="/dashboard" 
-          element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/create" 
-          element={
-            <ProtectedRoute>
-              <BuilderPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/tailor" 
-          element={
-            <ProtectedRoute>
-              <TailorPage />
-            </ProtectedRoute>
-          } 
-        />
-      </Routes>
+          <Route 
+            path="/dashboard" 
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/create" 
+            element={
+              <ProtectedRoute>
+                <BuilderPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/tailor" 
+            element={
+              <ProtectedRoute>
+                <TailorPage />
+              </ProtectedRoute>
+            } 
+          />
+        </Routes>
+      </Suspense>
       {!isFullWorkspace && <Footer onOpenTechStack={() => setIsTechStackOpen(true)} />}
 
       {/* Global Tech Stack Modal */}

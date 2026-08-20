@@ -14,6 +14,7 @@
 
 import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import dotenv from 'dotenv';
 import { connectDB } from './config/db';
 import { seedDatabase } from './config/seeder';
@@ -34,14 +35,15 @@ connectDB().then(() => {
 });
 
 /**
- * Middleware Configuration
+ * High-Performance Middleware Configuration
  */
+app.use(compression()); // Gzip/Brotli response compression for ultra-fast payload delivery
 app.use(cors({
   origin: '*', // Allow frontend client requests from any host
   credentials: true
 }));
-app.use(express.json()); // JSON parser for incoming body payloads
-app.use(express.urlencoded({ extended: true })); // URL-encoded body parser
+app.use(express.json({ limit: '10mb' })); // Optimized JSON parser
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 /**
  * API Routes Mount Points
