@@ -8,7 +8,7 @@ import {
 import type { ResumeData, ResumeStyle, TemplateId } from '../types/resume';
 import { parseResumeText } from '../utils/resumeParser';
 import { parseResumeFile } from '../utils/fileReader';
-import { enhanceBulletText, enhanceProfessionalSummary } from '../utils/resumeEnhancer';
+import { enhanceBulletText, enhanceProfessionalSummary, auditResumeLocally } from '../utils/resumeEnhancer';
 import { getApiUrl } from '../utils/api';
 import { generateDomainResume } from '../utils/domainResumeGenerator';
 
@@ -292,6 +292,7 @@ const BuilderPage: React.FC = () => {
       return;
     }
     setIsAuditing(true);
+    let audit: any = null;
     try {
       const response = await fetch(getApiUrl('/api/ai/audit'), {
         method: 'POST',
@@ -305,22 +306,24 @@ const BuilderPage: React.FC = () => {
           jobDescription: targetJobDescription
         })
       });
-      const result = await response.json();
       if (response.ok) {
-        setAtsAuditData(result);
-        localStorage.setItem('latestAtsAudit', JSON.stringify({
-          atsAnalysis: result,
-          userResumeData: data,
-          jobTitle: data.personalInfo?.jobTitle || 'Professional',
-          jobDescription: targetJobDescription
-        }));
-      } else {
-        alert(result.error || 'Failed to analyze.');
+        audit = await response.json();
       }
     } catch (err) {
-      console.error(err);
-      alert('An error occurred during analysis.');
+      console.warn('API error during ATS audit, using client engine:', err);
     }
+
+    if (!audit) {
+      audit = auditResumeLocally(data, data.personalInfo?.jobTitle || 'Professional', targetJobDescription);
+    }
+
+    setAtsAuditData(audit);
+    localStorage.setItem('latestAtsAudit', JSON.stringify({
+      atsAnalysis: audit,
+      userResumeData: data,
+      jobTitle: data.personalInfo?.jobTitle || 'Professional',
+      jobDescription: targetJobDescription
+    }));
     setIsAuditing(false);
   };
 
@@ -356,6 +359,8 @@ const BuilderPage: React.FC = () => {
   const handleEnhanceSummaryAI = async () => {
     if (!data?.personalInfo.summary) return;
     setIsEnhancingSummary(true);
+    let enhanced = '';
+
     try {
       const response = await fetch(getApiUrl('/api/ai/enhance/summary'), {
         method: 'POST',
@@ -368,31 +373,40 @@ const BuilderPage: React.FC = () => {
           jobTitle: data.personalInfo.jobTitle
         })
       });
-      const result = await response.json();
-      
-      if (response.ok && result.enhancedSummary) {
-        setData({
-          ...data,
-          personalInfo: { ...data.personalInfo, summary: result.enhancedSummary }
-        });
-      } else {
-        alert(result.error || 'Failed to enhance summary.');
+      if (response.ok) {
+        const result = await response.json();
+        if (result.enhancedSummary) {
+          enhanced = result.enhancedSummary;
+        }
       }
     } catch (err) {
-      console.error(err);
-      alert('Network error while enhancing summary.');
-    } finally {
-      setIsEnhancingSummary(false);
+      console.warn('API error in summary enhancement, using client engine:', err);
     }
+
+    if (!enhanced) {
+      enhanced = enhanceProfessionalSummary(
+        data.personalInfo.summary,
+        data.personalInfo.jobTitle,
+        atsAuditData?.missingKeywords || []
+      );
+    }
+
+    setData(prev => ({
+      ...prev,
+      personalInfo: { ...prev.personalInfo, summary: enhanced }
+    }));
+    setIsEnhancingSummary(false);
   };
 
   const [enhancingProjectId, setEnhancingProjectId] = useState<string | null>(null);
 
   const handleEnhanceProjectAI = async (projId: string) => {
     const proj = data?.projects.find(p => p.id === projId);
-    if (!proj || !proj.description) return;
+    if (!proj) return;
     
     setEnhancingProjectId(projId);
+    let enhanced = '';
+
     try {
       const response = await fetch(getApiUrl('/api/ai/enhance/bullet'), {
         method: 'POST',
@@ -405,19 +419,30 @@ const BuilderPage: React.FC = () => {
           role: proj.name // pass the project name as context
         })
       });
-      const result = await response.json();
-      
-      if (response.ok && result.enhancedBullet) {
-        const updatedProj = data!.projects.map(p => 
-          p.id === projId ? { ...p, description: result.enhancedBullet } : p
-        );
-        setData(prev => prev ? { ...prev, projects: updatedProj } : prev);
+      if (response.ok) {
+        const result = await response.json();
+        if (result.enhancedBullet) {
+          enhanced = result.enhancedBullet;
+        }
       }
     } catch (error) {
-      console.error('Failed to enhance project description', error);
-    } finally {
-      setEnhancingProjectId(null);
+      console.warn('API error in project bullet enhancement, using client engine:', error);
     }
+
+    if (!enhanced) {
+      const bullets = (proj.description || '').split('\n').filter(Boolean);
+      if (bullets.length === 0) {
+        enhanced = enhanceBulletText(proj.name, proj.name, []);
+      } else {
+        enhanced = bullets.map(b => enhanceBulletText(b, proj.name, [])).join('\n');
+      }
+    }
+
+    const updatedProj = data!.projects.map(p => 
+      p.id === projId ? { ...p, description: enhanced } : p
+    );
+    setData(prev => ({ ...prev, projects: updatedProj }));
+    setEnhancingProjectId(null);
   };
 
   const [suggestingTechProjectId, setSuggestingTechProjectId] = useState<string | null>(null);
@@ -427,6 +452,8 @@ const BuilderPage: React.FC = () => {
     if (!proj) return;
 
     setSuggestingTechProjectId(projId);
+    let techStack = '';
+
     try {
       const response = await fetch(getApiUrl('/api/ai/suggest-project-techstack'), {
         method: 'POST',
@@ -438,21 +465,36 @@ const BuilderPage: React.FC = () => {
           description: proj.description
         })
       });
-      const result = await response.json();
-
-      if (response.ok && result.techStack) {
-        const stackString = Array.isArray(result.techStack) ? result.techStack.join(', ') : result.techStack;
-
-        const updatedProj = data!.projects.map(p => 
-          p.id === projId ? { ...p, technologies: stackString, techStack: stackString } : p
-        );
-        setData(prev => prev ? { ...prev, projects: updatedProj } : prev);
+      if (response.ok) {
+        const result = await response.json();
+        if (result.techStack) {
+          techStack = Array.isArray(result.techStack) ? result.techStack.join(', ') : result.techStack;
+        }
       }
     } catch (error) {
-      console.error('Failed to suggest tech stack', error);
-    } finally {
-      setSuggestingTechProjectId(null);
+      console.warn('API error in tech stack suggestion, using client engine:', error);
     }
+
+    if (!techStack) {
+      const name = (proj.name || '').toLowerCase();
+      if (name.includes('data') || name.includes('analytics') || name.includes('dashboard') || name.includes('bi')) {
+        techStack = 'SQL, Snowflake, dbt, Tableau, Python';
+      } else if (name.includes('ios') || name.includes('swift') || name.includes('apple')) {
+        techStack = 'Swift, SwiftUI, Combine, CoreData, Fastlane';
+      } else if (name.includes('security') || name.includes('soc') || name.includes('bot')) {
+        techStack = 'Python, Splunk, Wireshark, Docker, Linux';
+      } else if (name.includes('seo') || name.includes('marketing') || name.includes('web')) {
+        techStack = 'Technical SEO, GA4, Search Console, Lighthouse, Schema.org';
+      } else {
+        techStack = 'TypeScript, React 19, Node.js, PostgreSQL, Docker';
+      }
+    }
+
+    const updatedProj = data!.projects.map(p => 
+      p.id === projId ? { ...p, technologies: techStack, techStack } : p
+    );
+    setData(prev => ({ ...prev, projects: updatedProj }));
+    setSuggestingTechProjectId(null);
   };
 
 
@@ -461,6 +503,8 @@ const BuilderPage: React.FC = () => {
     if (!exp) return;
     
     setEnhancingBulletId(expId);
+    let enhanced = '';
+
     try {
       const response = await fetch(getApiUrl('/api/ai/enhance/bullet'), {
         method: 'POST',
@@ -473,22 +517,30 @@ const BuilderPage: React.FC = () => {
           role: exp.role
         })
       });
-      const result = await response.json();
-      
-      if (response.ok && result.enhancedBullet) {
-        const updatedExp = data!.experience.map(e => 
-          e.id === expId ? { ...e, description: result.enhancedBullet } : e
-        );
-        setData({ ...data!, experience: updatedExp });
-      } else {
-        alert(result.error || 'Failed to enhance bullet.');
+      if (response.ok) {
+        const result = await response.json();
+        if (result.enhancedBullet) {
+          enhanced = result.enhancedBullet;
+        }
       }
     } catch (err) {
-      console.error(err);
-      alert('Network error while enhancing bullet.');
-    } finally {
-      setEnhancingBulletId(null);
+      console.warn('API error in bullet enhancement, using client engine:', err);
     }
+
+    if (!enhanced) {
+      const bullets = (exp.description || '').split('\n').filter(Boolean);
+      if (bullets.length === 0) {
+        enhanced = enhanceBulletText('', exp.role, atsAuditData?.missingKeywords || []);
+      } else {
+        enhanced = bullets.map(b => enhanceBulletText(b, exp.role, atsAuditData?.missingKeywords || [])).join('\n');
+      }
+    }
+
+    const updatedExp = data!.experience.map(e => 
+      e.id === expId ? { ...e, description: enhanced } : e
+    );
+    setData(prev => ({ ...prev, experience: updatedExp }));
+    setEnhancingBulletId(null);
   };
 
 
