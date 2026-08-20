@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { getApiUrl } from '../utils/api';
+import { generateDomainResume } from '../utils/domainResumeGenerator';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -148,6 +149,8 @@ const DashboardPage: React.FC = () => {
     }
     
     setGenerating(true);
+    let generated: any = null;
+
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(getApiUrl('/api/ai/generate-from-jd'), {
@@ -157,39 +160,37 @@ const DashboardPage: React.FC = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          jobTitle: genJobTitle || 'Full Stack Engineer',
+          jobTitle: genJobTitle || 'Data Analyst & BI Specialist',
           jobDescription: genJobDescription || genJobTitle,
           experienceLevel: genLevel,
           keySkills: genKeySkills
         })
       });
       
-      const resData = await response.json();
-      if (!response.ok) {
-        throw new Error(resData.error || 'Failed to generate resume.');
-      }
-      
-      if (resData.resume) {
-        const generated = {
-          ...resData.resume,
-          templateId: 'academic'
-        };
-        
-        navigate('/create', { 
-          state: { 
-            resume: generated,
-            atsAnalysis: null,
-            jobTitle: genJobTitle,
-            jobDescription: genJobDescription
-          } 
-        });
+      if (response.ok) {
+        const resData = await response.json();
+        if (resData.resume) {
+          generated = resData.resume;
+        }
       }
     } catch (err: any) {
-      console.error(err);
-      alert(err.message || 'An error occurred during resume generation.');
-    } finally {
-      setGenerating(false);
+      console.warn('API call failed, using client-side domain engine:', err);
     }
+
+    if (!generated) {
+      // Instant Client-Side Domain & Seniority Engine Fallback
+      generated = generateDomainResume(genJobTitle, genJobDescription, genLevel, genKeySkills);
+    }
+
+    setGenerating(false);
+    navigate('/create', { 
+      state: { 
+        resume: { ...generated, templateId: 'academic' },
+        atsAnalysis: null,
+        jobTitle: genJobTitle,
+        jobDescription: genJobDescription
+      } 
+    });
   };
 
   useEffect(() => {

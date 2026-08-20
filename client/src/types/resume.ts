@@ -16,6 +16,8 @@ export interface Experience {
   id: string;
   company: string;
   role: string;
+  location?: string;
+  duration?: string;
   startDate: string;
   endDate: string;
   description: string;
@@ -92,6 +94,9 @@ export interface ResumeData {
   positionsOfResponsibility: PositionOfResponsibility[];
   interests: Item[];
   sectionOrder?: string[];
+  atsScore?: number;
+  templateId?: string;
+  style?: ResumeStyle;
 }
 
 export interface ResumeStyle {

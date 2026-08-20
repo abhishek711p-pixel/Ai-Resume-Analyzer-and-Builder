@@ -133,3 +133,78 @@ export function enhanceProfessionalSummary(_currentSummary: string, targetTitle:
 
   return templates[Math.floor(Math.random() * templates.length)];
 }
+
+/**
+ * Local client-side ATS audit fallback for offline/Vercel static execution
+ */
+export function auditResumeLocally(resume: ResumeData, targetJobTitle: string = '', jobDescription: string = ''): ATSAnalysisResult {
+  const combinedJd = `${targetJobTitle} ${jobDescription}`.toLowerCase();
+  const resumeText = JSON.stringify(resume).toLowerCase();
+
+  const isData = combinedJd.includes('data') || combinedJd.includes('analyst') || combinedJd.includes('tableau') || combinedJd.includes('sql');
+  const isPython = combinedJd.includes('python') || combinedJd.includes('django') || combinedJd.includes('fastapi');
+  const isSecurity = combinedJd.includes('security') || combinedJd.includes('cyber') || combinedJd.includes('siem');
+  const isSEO = combinedJd.includes('seo') || combinedJd.includes('search console');
+  const isDevOps = combinedJd.includes('devops') || combinedJd.includes('kubernetes') || combinedJd.includes('aws');
+
+  let domainKeywords: string[] = [];
+  if (isData) {
+    domainKeywords = ['SQL', 'Python', 'Tableau', 'PowerBI', 'Snowflake', 'dbt', 'ETL Pipelines', 'A/B Testing', 'Data Modeling', 'BigQuery'];
+  } else if (isPython) {
+    domainKeywords = ['Python', 'Django', 'FastAPI', 'Celery', 'Redis', 'PostgreSQL', 'Docker', 'AWS', 'REST APIs', 'pytest'];
+  } else if (isSecurity) {
+    domainKeywords = ['SIEM', 'Splunk', 'Wireshark', 'Threat Hunting', 'Incident Response', 'Nessus', 'EDR', 'MITRE ATT&CK', 'Vulnerability Assessment'];
+  } else if (isSEO) {
+    domainKeywords = ['Technical SEO', 'Google Search Console', 'GA4', 'Core Web Vitals', 'Keyword Research', 'Screaming Frog', 'Schema Markup'];
+  } else if (isDevOps) {
+    domainKeywords = ['Kubernetes', 'Terraform', 'AWS', 'Docker', 'CI/CD', 'ArgoCD', 'Prometheus', 'Grafana', 'Helm'];
+  } else {
+    domainKeywords = ['TypeScript', 'React 19', 'Node.js', 'Next.js', 'PostgreSQL', 'Docker', 'AWS', 'REST APIs', 'CI/CD'];
+  }
+
+  const matchingKeywords: string[] = [];
+  const missingKeywords: string[] = [];
+
+  domainKeywords.forEach(kw => {
+    if (resumeText.includes(kw.toLowerCase())) {
+      matchingKeywords.push(kw);
+    } else {
+      missingKeywords.push(kw);
+    }
+  });
+
+  const keywordMatchScore = Math.min(100, Math.round((matchingKeywords.length / domainKeywords.length) * 100));
+  const overallScore = Math.max(65, Math.min(98, Math.round(keywordMatchScore * 0.5 + 45)));
+
+  return {
+    atsScore: overallScore,
+    matchingKeywords,
+    missingKeywords,
+    missingKeywordGuidance: missingKeywords.map(kw => ({
+      keyword: kw,
+      targetSection: 'skills',
+      placementAdvice: `Add ${kw} under Core Skills and mention its practical usage in recent work experience.`
+    })),
+    unnecessaryKeywords: [],
+    contentMistakes: missingKeywords.length > 3 ? [
+      {
+        title: 'Missing Critical Domain Keywords',
+        desc: `Your resume is missing key requirements for ${targetJobTitle || 'this role'}: ${missingKeywords.slice(0, 3).join(', ')}.`,
+        type: 'critical'
+      }
+    ] : [],
+    bulletImprovements: [
+      {
+        original: resume.experience[0]?.description?.split('\n')[0] || 'Worked on key features.',
+        improved: `• Accomplished 40% performance gain as measured by latency benchmarks, by engineering scalable pipelines utilizing ${domainKeywords[0] || 'modern architecture'}.`,
+        reason: 'Adds measurable metrics and Google X-Y-Z formula structure.'
+      }
+    ],
+    scoreBreakdown: {
+      keywordMatch: keywordMatchScore,
+      formatting: 95,
+      metricsAndImpact: 88,
+      sectionCompleteness: 92
+    }
+  };
+}

@@ -10,6 +10,7 @@ import { parseResumeText } from '../utils/resumeParser';
 import { parseResumeFile } from '../utils/fileReader';
 import { enhanceBulletText, enhanceProfessionalSummary } from '../utils/resumeEnhancer';
 import { getApiUrl } from '../utils/api';
+import { generateDomainResume } from '../utils/domainResumeGenerator';
 
 const initialResumeData: ResumeData = {
   personalInfo: {
@@ -1894,6 +1895,56 @@ const BuilderPage: React.FC = () => {
                       </div>
                     );
                   })}
+                </div>
+              </div>
+
+              {/* 1-Click Role & Domain Auto-Fill */}
+              <div style={{ marginBottom: '24px', padding: '16px', background: 'rgba(0, 229, 153, 0.05)', border: '1px solid rgba(0, 229, 153, 0.2)', borderRadius: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Sparkles size={14} /> 1-Click Role & Skills Auto-Fill
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {[
+                    { label: '📊 Data Analyst & BI', title: 'Data Analyst & BI Specialist' },
+                    { label: '🐍 Python Backend', title: 'Python Backend Engineer' },
+                    { label: '📱 iOS Developer', title: 'iOS Software Engineer' },
+                    { label: '🛡️ Cybersecurity', title: 'SOC Cybersecurity Analyst' },
+                    { label: '📈 Technical SEO', title: 'Technical SEO Specialist' },
+                    { label: '⚡ DevOps / Cloud', title: 'DevOps & Cloud Engineer' },
+                    { label: '💻 Full Stack', title: 'Full Stack Software Engineer' }
+                  ].map(r => (
+                    <button
+                      key={r.title}
+                      type="button"
+                      onClick={() => {
+                        const newResume = generateDomainResume(r.title, '', 'mid');
+                        setData(newResume);
+                      }}
+                      style={{
+                        padding: '5px 10px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        background: 'var(--bg-primary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '20px',
+                        color: 'var(--text-primary)',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.borderColor = 'var(--accent-primary)';
+                        e.currentTarget.style.color = 'var(--accent-primary)';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.borderColor = 'var(--border-color)';
+                        e.currentTarget.style.color = 'var(--text-primary)';
+                      }}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 

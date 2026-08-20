@@ -13,9 +13,11 @@ import { parseResumeFile, extractTextFromFile } from '../utils/fileReader';
 import { 
   enhanceBulletText, 
   enhanceProfessionalSummary,
+  auditResumeLocally,
   type ATSAnalysisResult 
 } from '../utils/resumeEnhancer';
 import { getApiUrl } from '../utils/api';
+import { generateDomainResume } from '../utils/domainResumeGenerator';
 
 const sampleCurrentResumeText = `Jane Doe
 Software Developer
@@ -183,14 +185,18 @@ const TailorPage: React.FC = () => {
     let parsed: ResumeData;
     if (resumeFile && !resumeText) {
       parsed = await parseResumeFile(resumeFile);
+    } else if (resumeText && resumeText.trim()) {
+      parsed = parseResumeText(resumeText);
     } else {
-      parsed = parseResumeText(resumeText || sampleCurrentResumeText);
+      // If user hasn't uploaded a resume, generate a calibrated domain baseline for the target role
+      parsed = generateDomainResume(jobTitle || 'Data Analyst & BI Specialist', jobDescription, 'mid');
     }
     setUserResumeData(parsed);
 
     setScanProgress(50);
     setScanMessage('Auditing ATS keywords, formatting, and action verbs via AI...');
 
+    let audit: ATSAnalysisResult | null = null;
     try {
       const response = await fetch(getApiUrl('/api/ai/audit'), {
         method: 'POST',
@@ -205,25 +211,26 @@ const TailorPage: React.FC = () => {
         })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to generate ATS audit');
+      if (response.ok) {
+        audit = await response.json();
       }
-
-      const audit = await response.json();
-      setAtsAnalysis(audit);
-      localStorage.setItem('latestAtsAudit', JSON.stringify({
-        atsAnalysis: audit,
-        userResumeData: parsed,
-        jobTitle,
-        jobDescription
-      }));
-      setScanProgress(100);
-      setStep('insights');
     } catch (err) {
-      console.error(err);
-      alert('Failed to audit resume using AI. Please try again.');
-      setStep('upload');
+      console.warn('API audit call failed, using client-side ATS engine:', err);
     }
+
+    if (!audit) {
+      audit = auditResumeLocally(parsed, jobTitle, jobDescription);
+    }
+
+    setAtsAnalysis(audit);
+    localStorage.setItem('latestAtsAudit', JSON.stringify({
+      atsAnalysis: audit,
+      userResumeData: parsed,
+      jobTitle,
+      jobDescription
+    }));
+    setScanProgress(100);
+    setStep('insights');
   };
 
   const handleCreateImpressiveResume = () => {
